@@ -1,0 +1,13 @@
+{
+  "name": "cutcut-clone",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*",
+    "services/*"
+  ],
+  "scripts": {
+    "deploy": "echo 'Run deployment from apps/web once OpenNext is configured'"
+  }
+}

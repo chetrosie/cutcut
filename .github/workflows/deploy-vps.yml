@@ -1,0 +1,41 @@
+name: Deploy VPS Worker
+
+on:
+  push:
+    branches: ["main"]
+
+jobs:
+  deploy-vps:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push media-worker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./services/media-worker/Dockerfile
+          push: true
+          tags: ghcr.io/${{ github.repository }}-media-worker:latest
+
+      - name: Deploy on VPS via SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            cd /opt/cutcut-clone
+            docker compose pull
+            docker compose up -d

@@ -1,0 +1,16 @@
+# Ignore local snapshots and dependencies
+.alma-snapshots
+node_modules
+.bun
+.env
+.env.*
+
+# Build outputs
+.next
+.open-next
+dist
+coverage
+
+# OS / editor
+.DS_Store
+.vscode

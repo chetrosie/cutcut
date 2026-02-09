@@ -1,0 +1,18 @@
+version: "3.9"
+
+services:
+  media-worker:
+    image: ghcr.io/REPLACE_WITH_GITHUB_ORG/REPLACE_WITH_REPO-media-worker:latest
+    restart: always
+    env_file:
+      - .env
+    command: ["bun", "run", "src/worker.ts"]
+
+  redis:
+    image: redis:7-alpine
+    restart: always
+    volumes:
+      - redis_data:/data
+
+volumes:
+  redis_data:

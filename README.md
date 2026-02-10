@@ -248,18 +248,34 @@ docker compose pull && docker compose up -d
 
 1. 左侧菜单选择 **Workers & Pages**
 2. 点击 **Create application**
-3. 选择 **Create Worker**
-4. 名称输入 `cutcut-edge`
-5. 点击 **Deploy**
-6. 部署完成后点击 **Edit code**
+3. 选择 **Create Worker** 或 **Pages**，根据需求选择：
 
-##### 5. 上传代码
+| 选项 | 适用场景 | 推荐 |
+|------|----------|------|
+| **Workers → 连接 GitHub** | 自动部署，推送代码后自动更新 | ⭐ 推荐 |
+| **Workers → Hello World** | 手动上传代码，快速测试 | 适合调试 |
+| **Pages** | 静态网站、前端项目 | 不适合本项目 |
 
-在代码编辑器中：
+###### 选项 A: 连接 GitHub（推荐）
 
-1. 删除默认代码
-2. 将本项目构建后的 `.open-next/worker.js` 内容粘贴进去
+1. 选择 **Create Worker** → **Connect to Git**
+2. 点击 **Connect GitHub**，授权 Cloudflare 访问
+3. 选择 `chetrosie/cutcut` 仓库
+4. 配置构建设置：
+   - **Production branch**: `main`
+   - **Build command**: `bun run build`（或留空使用默认）
+   - **Build output directory**: `.open-next`
+5. 点击 **Save and Deploy**
+6. 之后每次推送到 `main` 分支会自动部署
+
+###### 选项 B: Hello World（手动上传）
+
+1. 选择 **Create Worker** → **Hello World**
+2. 名称输入 `cutcut-edge`
 3. 点击 **Deploy**
+4. 部署完成后点击 **Edit code**
+5. 删除默认代码，粘贴构建后的 `.open-next/worker.js` 内容
+6. 点击 **Deploy**
 
 ##### 6. 绑定资源
 

@@ -1,21 +1,7 @@
 name = "cutcut-edge"
-main = ".open-next/worker.js"
+main = "apps/web/.next/server/app/page.js"
 compatibility_date = "2026-02-09"
-compatibility_flags = ["nodejs_compat"]
 
 [assets]
-directory = ".open-next/assets"
+directory = "apps/web/out"
 binding = "ASSETS"
-
-[[r2_buckets]]
-binding = "MEDIA_BUCKET"
-bucket_name = "cutcut-media"
-
-[[d1_databases]]
-binding = "DB"
-database_name = "cutcut-db"
-database_id = "REPLACE_WITH_D1_DATABASE_ID"
-
-[[queues.producers]]
-binding = "TASK_QUEUE"
-queue = "cutcut-task-queue"

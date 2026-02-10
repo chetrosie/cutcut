@@ -263,8 +263,8 @@ docker compose pull && docker compose up -d
 3. 选择 `chetrosie/cutcut` 仓库
 4. 配置构建设置：
    - **Production branch**: `main`
-   - **Build command**: `bun run build`（或留空使用默认）
-   - **Build output directory**: `.open-next`
+   - **Build command**: `bun run build`
+   - **Build output directory**: `apps/web/out`
 5. 点击 **Save and Deploy**
 6. 之后每次推送到 `main` 分支会自动部署
 

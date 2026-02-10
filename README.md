@@ -214,9 +214,80 @@ docker compose pull && docker compose up -d
 
 ### Cloudflare 部署
 
-支持部署到 Cloudflare Workers/Pages，利用边缘计算能力。
+支持部署到 Cloudflare Workers/Pages，提供两种部署方式：
 
-#### 步骤 1: 安装 Wrangler
+#### 方式 A: 使用 Cloudflare Dashboard (网页版)
+
+适合不熟悉命令行的用户，通过浏览器完成所有配置。
+
+##### 1. 创建 D1 数据库
+
+1. 登录 [Cloudflare Dashboard](https://dash.cloudflare.com/)
+2. 左侧菜单选择 **Workers & Pages** → **D1 SQL Database**
+3. 点击 **Create database**
+4. 名称输入 `cutcut-db`
+5. 点击 **Create**
+6. 创建完成后，记录 **Database ID**（格式类似 `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`）
+
+##### 2. 创建 R2 存储桶
+
+1. 左侧菜单选择 **R2 Object Storage**
+2. 点击 **Create bucket**
+3. Bucket name 输入 `cutcut-media`
+4. 选择 **Locational** 类型
+5. 点击 **Create bucket**
+
+##### 3. 创建 Queue 队列
+
+1. 左侧菜单选择 **Workers & Pages** → **Queues**
+2. 点击 **Create queue**
+3. Queue name 输入 `cutcut-task-queue`
+4. 点击 **Create queue**
+
+##### 4. 创建 Worker
+
+1. 左侧菜单选择 **Workers & Pages**
+2. 点击 **Create application**
+3. 选择 **Create Worker**
+4. 名称输入 `cutcut-edge`
+5. 点击 **Deploy**
+6. 部署完成后点击 **Edit code**
+
+##### 5. 上传代码
+
+在代码编辑器中：
+
+1. 删除默认代码
+2. 将本项目构建后的 `.open-next/worker.js` 内容粘贴进去
+3. 点击 **Deploy**
+
+##### 6. 绑定资源
+
+回到 Worker 设置页面：
+
+1. 点击 **Settings** → **Bindings**
+2. 添加以下绑定：
+
+| 绑定类型 | Variable name | 值 |
+|---------|---------------|-----|
+| D1 Database | `DB` | 选择 `cutcut-db` |
+| R2 Bucket | `MEDIA_BUCKET` | 选择 `cutcut-media` |
+| Queue | `TASK_QUEUE` | 选择 `cutcut-task-queue` |
+
+##### 7. 配置自定义域名 (可选)
+
+1. 点击 **Settings** → **Triggers**
+2. 点击 **Add Custom Domain**
+3. 输入你的域名（如 `api.yourdomain.com`）
+4. 点击 **Add Custom Domain**
+
+---
+
+#### 方式 B: 使用 Wrangler CLI
+
+适合开发者和自动化部署场景。
+
+##### 1. 安装 Wrangler
 
 ```bash
 npm install -g wrangler
@@ -224,13 +295,13 @@ npm install -g wrangler
 bun install -g wrangler
 ```
 
-#### 步骤 2: 登录 Cloudflare
+##### 2. 登录 Cloudflare
 
 ```bash
 wrangler login
 ```
 
-#### 步骤 3: 创建 Cloudflare 资源
+##### 3. 创建 Cloudflare 资源
 
 ```bash
 # 创建 D1 数据库
@@ -244,7 +315,7 @@ wrangler r2 bucket create cutcut-media
 wrangler queues create cutcut-task-queue
 ```
 
-#### 步骤 4: 更新配置
+##### 4. 更新配置
 
 编辑 `infra/cloudflare/wrangler.toml`，替换 `database_id`：
 
@@ -255,7 +326,7 @@ database_name = "cutcut-db"
 database_id = "你的实际数据库ID"  # 从步骤 3 获取
 ```
 
-#### 步骤 5: 部署
+##### 5. 部署
 
 ```bash
 cd infra/cloudflare
@@ -267,7 +338,7 @@ wrangler dev
 wrangler deploy
 ```
 
-#### 步骤 6: 配置自定义域名 (可选)
+##### 6. 配置自定义域名 (可选)
 
 ```bash
 # 添加自定义域名

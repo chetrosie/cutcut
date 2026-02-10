@@ -8,6 +8,8 @@
     "services/*"
   ],
   "scripts": {
+    "test": "bun test",
+    "bench:tool-search": "bun run packages/core/scripts/tool-search-bench.ts",
     "deploy": "echo 'Run deployment from apps/web once OpenNext is configured'"
   }
 }

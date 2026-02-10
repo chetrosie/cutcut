@@ -99,39 +99,215 @@ bun run bench:tool-search
 
 ### VPS 部署
 
-项目使用 GitHub Actions 自动构建并部署到 VPS。
+项目使用 GitHub Actions 自动构建 Docker 镜像并部署到 VPS。
 
-#### 前置条件
-
-1. VPS 服务器已安装 Docker 和 Docker Compose
-2. GitHub Repository 配置了以下 Secrets：
-
-| Secret | 说明 |
-|--------|------|
-| `VPS_HOST` | VPS 服务器地址 |
-| `VPS_USER` | SSH 用户名 |
-| `VPS_SSH_KEY` | SSH 私钥 |
-
-#### 部署流程
-
-推送到 `main` 分支会自动触发：
-
-1. 构建 Docker 镜像
-2. 推送到 GitHub Container Registry (`ghcr.io`)
-3. SSH 到 VPS 拉取新镜像并重启服务
-
-#### 手动部署
+#### 步骤 1: 准备 VPS 服务器
 
 ```bash
-# 在 VPS 上
-cd /opt/cutcut
+# 1. 安装 Docker (Ubuntu/Debian)
+curl -fsSL https://get.docker.com | sh
+sudo usermod -aG docker $USER
+
+# 2. 安装 Docker Compose
+sudo apt install docker-compose-plugin
+
+# 3. 创建项目目录
+sudo mkdir -p /opt/cutcut
+sudo chown $USER:$USER /opt/cutcut
+
+# 4. 克隆仓库
+cd /opt
+git clone https://github.com/chetrosie/cutcut.git cutcut
+cd cutcut
+```
+
+#### 步骤 2: 配置环境变量
+
+在 VPS 的 `/opt/cutcut/infra/vps/` 目录创建 `.env` 文件：
+
+```bash
+# /opt/cutcut/infra/vps/.env
+
+# API 配置
+API_BASE_URL=https://your-api-server.com
+API_INTERNAL_TOKEN=your-internal-token
+
+# Redis 配置 (可选，使用默认配置即可)
+REDIS_URL=redis://redis:6379
+```
+
+#### 步骤 3: 配置 GitHub Secrets
+
+进入 GitHub 仓库 → **Settings** → **Secrets and variables** → **Actions**，添加以下 Secrets：
+
+| Secret 名称 | 说明 | 示例 |
+|-------------|------|------|
+| `VPS_HOST` | VPS 服务器 IP 或域名 | `192.168.1.100` 或 `vps.example.com` |
+| `VPS_USER` | SSH 登录用户名 | `ubuntu` 或 `root` |
+| `VPS_SSH_KEY` | SSH 私钥 | 见下方说明 |
+
+**生成 SSH 密钥用于 GitHub Actions：**
+
+```bash
+# 在本地生成专用密钥
+ssh-keygen -t ed25519 -C "github-actions@cutcut" -f ~/.ssh/cutcut_deploy
+
+# 将公钥添加到 VPS
+ssh-copy-id -i ~/.ssh/cutcut_deploy.pub user@your-vps
+
+# 测试连接
+ssh -i ~/.ssh/cutcut_deploy user@your-vps
+
+# 复制私钥内容，粘贴到 GitHub Secret
+cat ~/.ssh/cutcut_deploy
+```
+
+#### 步骤 4: 首次部署
+
+```bash
+# 在 VPS 上手动拉取镜像并启动
+cd /opt/cutcut/infra/vps
+
+# 登录 GitHub Container Registry
+echo $GITHUB_TOKEN | docker login ghcr.io -u chetrosie --password-stdin
+
+# 拉取并启动
 docker compose pull
 docker compose up -d
+
+# 查看日志
+docker compose logs -f media-worker
 ```
+
+#### 步骤 5: 自动部署
+
+配置完成后，每次推送到 `main` 分支会自动触发：
+
+```
+GitHub Actions 自动执行：
+1. 检出代码
+2. 构建 Docker 镜像
+3. 推送到 ghcr.io/chetrosie/cutcut-media-worker:latest
+4. SSH 到 VPS 执行 docker compose pull && docker compose up -d
+```
+
+#### 常用运维命令
+
+```bash
+# 查看服务状态
+docker compose ps
+
+# 查看实时日志
+docker compose logs -f media-worker
+
+# 重启服务
+docker compose restart media-worker
+
+# 停止所有服务
+docker compose down
+
+# 更新并重启
+docker compose pull && docker compose up -d
+```
+
+---
 
 ### Cloudflare 部署
 
-配置文件位于 `infra/cloudflare/`，支持部署到 Cloudflare Workers。
+支持部署到 Cloudflare Workers/Pages，利用边缘计算能力。
+
+#### 步骤 1: 安装 Wrangler
+
+```bash
+npm install -g wrangler
+# 或
+bun install -g wrangler
+```
+
+#### 步骤 2: 登录 Cloudflare
+
+```bash
+wrangler login
+```
+
+#### 步骤 3: 创建 Cloudflare 资源
+
+```bash
+# 创建 D1 数据库
+wrangler d1 create cutcut-db
+# 记录返回的 database_id
+
+# 创建 R2 存储桶
+wrangler r2 bucket create cutcut-media
+
+# 创建队列
+wrangler queues create cutcut-task-queue
+```
+
+#### 步骤 4: 更新配置
+
+编辑 `infra/cloudflare/wrangler.toml`，替换 `database_id`：
+
+```toml
+[[d1_databases]]
+binding = "DB"
+database_name = "cutcut-db"
+database_id = "你的实际数据库ID"  # 从步骤 3 获取
+```
+
+#### 步骤 5: 部署
+
+```bash
+cd infra/cloudflare
+
+# 本地开发
+wrangler dev
+
+# 部署到生产环境
+wrangler deploy
+```
+
+#### 步骤 6: 配置自定义域名 (可选)
+
+```bash
+# 添加自定义域名
+wrangler domains add your-domain.com
+
+# 或在 Cloudflare Dashboard 中配置
+```
+
+---
+
+### 常见问题
+
+#### Docker 镜像拉取失败
+
+```bash
+# 检查是否已登录 GHCR
+docker login ghcr.io -u chetrosie
+
+# 检查镜像是否存在
+docker pull ghcr.io/chetrosie/cutcut-media-worker:latest
+```
+
+#### GitHub Actions 部署失败
+
+1. 检查 Secrets 是否正确配置
+2. 检查 SSH 密钥是否有服务器访问权限
+3. 查看 Actions 日志定位具体错误
+
+#### VPS 服务无法启动
+
+```bash
+# 检查环境变量
+cat /opt/cutcut/infra/vps/.env
+
+# 检查端口占用
+sudo lsof -i :6379
+
+# 检查 Docker 网络
+docker network ls
+```
 
 ## 技术栈
 
